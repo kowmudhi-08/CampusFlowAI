@@ -131,8 +131,8 @@ mvn clean package
 mvn spring-boot:run
 ```
 
-- Backend REST API: `http://localhost:8080/api/v1`
-- Interactive Swagger UI: `http://localhost:8080/swagger-ui/index.html`
+- Backend REST API: `http://localhost:8088/api/v1`
+- Interactive Swagger UI: `http://localhost:8088/swagger-ui/index.html`
 
 Flyway will automatically run on startup and establish all 15 relational tables with zero dummy records.
 
@@ -189,6 +189,7 @@ npm run build
 | Service | Port | Description |
 |---|---|---|
 | **Frontend** | `5173` | React / Vite Web Application |
-| **Backend** | `8080` | Spring Boot REST API & Swagger UI |
+| **Backend** | `8088` | Spring Boot REST API & Swagger UI |
 | **AI Service** | `8000` | FastAPI Machine Learning Engine |
 | **MySQL** | `3306` | MySQL Relational Database Server |
+

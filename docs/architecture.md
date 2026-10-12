@@ -20,8 +20,9 @@ CampusFlow AI is an enterprise-grade full-stack College Management System engine
                       +------------------------------------------+
                       |        Spring Boot 3.3.4 Backend         |
                       |   (Spring Security 6, JPA / Hibernate)   |
-                      |             Port: 8080                   |
+                      |             Port: 8088                   |
                       +-----------+------------------+-----------+
+
                                   |                  |
                          JDBC / SQL (Port 3306)      | Internal REST (Port 8000)
                                   |                  | JSON Payload

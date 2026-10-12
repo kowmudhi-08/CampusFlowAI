@@ -21,6 +21,7 @@ app.add_middleware(
 engine = AcademicMLEngine()
 
 
+@app.get("/")
 @app.get("/health")
 def health_check():
     return {
@@ -30,6 +31,7 @@ def health_check():
         "model": engine.model_name,
         "timestamp": datetime.utcnow().isoformat()
     }
+
 
 
 @app.post("/api/v1/ai/performance-analysis", response_model=PerformanceOutput)

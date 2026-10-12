@@ -1,8 +1,9 @@
 # CampusFlow AI — REST API Documentation
 
-Base URL: `http://localhost:8080/api/v1`  
-Swagger OpenAPI Interactive UI: `http://localhost:8080/swagger-ui/index.html`  
-OpenAPI JSON Specification: `http://localhost:8080/v3/api-docs`
+Base URL: `http://localhost:8088/api/v1`  
+Swagger OpenAPI Interactive UI: `http://localhost:8088/swagger-ui/index.html`  
+OpenAPI JSON Specification: `http://localhost:8088/v3/api-docs`
+
 
 ---
 

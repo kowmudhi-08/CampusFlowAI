@@ -13,7 +13,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/v1/health")
 @Tag(name = "Health Check", description = "System health check and diagnostic status")
 public class HealthController {
 
@@ -23,8 +22,9 @@ public class HealthController {
         this.dataSource = dataSource;
     }
 
-    @GetMapping
+    @GetMapping({"/", "/health", "/api/v1/health"})
     public ResponseEntity<Map<String, Object>> getHealth() {
+
         Map<String, Object> health = new HashMap<>();
         health.put("status", "UP");
         health.put("application", "CampusFlow AI Backend");
