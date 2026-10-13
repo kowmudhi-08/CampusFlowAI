@@ -23,6 +23,12 @@ public class Examination {
     @Column(name = "exam_date", nullable = false)
     private LocalDate examDate;
 
+    @Column(name = "start_time", length = 20)
+    private String startTime;
+
+    @Column(name = "duration_minutes")
+    private Integer durationMinutes;
+
     @Column(name = "max_marks", nullable = false, precision = 5, scale = 2)
     private BigDecimal maxMarks = BigDecimal.valueOf(100.0);
 
@@ -132,5 +138,21 @@ public class Examination {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(String startTime) {
+        this.startTime = startTime;
+    }
+
+    public Integer getDurationMinutes() {
+        return durationMinutes;
+    }
+
+    public void setDurationMinutes(Integer durationMinutes) {
+        this.durationMinutes = durationMinutes;
     }
 }

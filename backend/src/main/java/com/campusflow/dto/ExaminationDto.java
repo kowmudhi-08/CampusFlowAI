@@ -11,6 +11,8 @@ public class ExaminationDto {
     private String courseCode;
     private String courseTitle;
     private LocalDate examDate;
+    private String startTime;
+    private Integer durationMinutes;
     private BigDecimal maxMarks;
     private ExamType examType;
     private boolean published;
@@ -64,6 +66,22 @@ public class ExaminationDto {
 
     public void setExamDate(LocalDate examDate) {
         this.examDate = examDate;
+    }
+
+    public String getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(String startTime) {
+        this.startTime = startTime;
+    }
+
+    public Integer getDurationMinutes() {
+        return durationMinutes;
+    }
+
+    public void setDurationMinutes(Integer durationMinutes) {
+        this.durationMinutes = durationMinutes;
     }
 
     public BigDecimal getMaxMarks() {

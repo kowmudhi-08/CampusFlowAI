@@ -91,10 +91,10 @@ public class AuthService {
         );
     }
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public AuthResponse register(RegisterRequest request) {
         if (!request.getPassword().equals(request.getConfirmPassword())) {
-            throw new BadRequestException("Password and confirm password do not match");
+            throw new BadRequestException("Passwords do not match");
         }
 
         // Strict Requirement: Never accept ADMIN as a public registration role
@@ -104,7 +104,7 @@ public class AuthService {
 
         String email = request.getEmail().trim().toLowerCase();
         if (userRepository.existsByEmail(email)) {
-            throw new ConflictException("User with this email already exists: " + email);
+            throw new ConflictException("An account with this email already exists: " + email);
         }
 
         Department department = null;
@@ -123,14 +123,18 @@ public class AuthService {
         User savedUser = userRepository.save(user);
 
         Long profileId = null;
+        java.security.SecureRandom random = new java.security.SecureRandom();
+
         if (request.getRole() == Role.STUDENT) {
             String roll = request.getRollNumber();
             if (roll == null || roll.trim().isEmpty()) {
-                roll = "STU-" + System.currentTimeMillis() % 1000000;
+                do {
+                    roll = "STU-" + (100000 + random.nextInt(900000));
+                } while (studentProfileRepository.existsByRollNumber(roll));
             } else {
                 roll = roll.trim();
                 if (studentProfileRepository.existsByRollNumber(roll)) {
-                    throw new ConflictException("Roll number is already in use: " + roll);
+                    throw new ConflictException("This roll number is already registered: " + roll);
                 }
             }
 
@@ -138,8 +142,8 @@ public class AuthService {
                     savedUser,
                     roll,
                     department,
-                    request.getBatchYear() != null ? request.getBatchYear() : 2026,
-                    request.getPhone(),
+                    request.getBatchYear() != null ? request.getBatchYear() : java.time.Year.now().getValue(),
+                    request.getPhone() != null ? request.getPhone().trim() : null,
                     null
             );
             StudentProfile savedProfile = studentProfileRepository.save(studentProfile);
@@ -147,11 +151,13 @@ public class AuthService {
         } else if (request.getRole() == Role.FACULTY) {
             String empCode = request.getEmployeeCode();
             if (empCode == null || empCode.trim().isEmpty()) {
-                empCode = "FAC-" + System.currentTimeMillis() % 1000000;
+                do {
+                    empCode = "FAC-" + (100000 + random.nextInt(900000));
+                } while (facultyProfileRepository.existsByEmployeeCode(empCode));
             } else {
                 empCode = empCode.trim();
                 if (facultyProfileRepository.existsByEmployeeCode(empCode)) {
-                    throw new ConflictException("Employee code is already in use: " + empCode);
+                    throw new ConflictException("This employee code is already registered: " + empCode);
                 }
             }
 
@@ -159,9 +165,9 @@ public class AuthService {
                     savedUser,
                     empCode,
                     department,
-                    request.getDesignation() != null ? request.getDesignation() : "Assistant Professor",
-                    request.getPhone(),
-                    request.getQualification()
+                    request.getDesignation() != null ? request.getDesignation().trim() : "Assistant Professor",
+                    request.getPhone() != null ? request.getPhone().trim() : null,
+                    request.getQualification() != null ? request.getQualification().trim() : null
             );
             FacultyProfile savedProfile = facultyProfileRepository.save(facultyProfile);
             profileId = savedProfile.getId();

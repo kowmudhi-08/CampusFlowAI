@@ -32,4 +32,12 @@ public class EnterMarksRequest {
     public void setMarksList(List<StudentMarkItem> marksList) {
         this.marksList = marksList;
     }
+
+    public List<StudentMarkItem> getMarks() {
+        return marksList;
+    }
+
+    public void setMarks(List<StudentMarkItem> marks) {
+        this.marksList = marks;
+    }
 }

@@ -1,31 +1,39 @@
 package com.campusflow.dto;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
+import java.math.BigDecimal;
 
 public class CreateStudentRequest {
 
     @NotBlank(message = "Full name is required")
-    @Size(min = 2, max = 150)
+    @Size(min = 2, max = 150, message = "Full name must be between 2 and 150 characters")
     private String fullName;
 
     @NotBlank(message = "Email is required")
-    @Email(message = "Please enter a valid email")
+    @Email(message = "Please enter a valid email address")
     private String email;
 
     @NotBlank(message = "Password is required")
-    @Size(min = 8, max = 100)
+    @Size(min = 6, max = 100, message = "Password must be at least 6 characters")
     private String password;
 
     @NotBlank(message = "Roll number is required")
-    @Size(min = 2, max = 50)
+    @Size(min = 2, max = 50, message = "Roll number must be between 2 and 50 characters")
     private String rollNumber;
 
     private Long departmentId;
+
+    @NotNull(message = "Batch year is required")
+    @Min(value = 1990, message = "Batch year must be valid")
+    @Max(value = 2100, message = "Batch year must be valid")
     private Integer batchYear;
+
     private String phone;
     private String address;
+
+    @DecimalMin(value = "0.0", message = "CGPA must be between 0.0 and 10.0")
+    @DecimalMax(value = "10.0", message = "CGPA must be between 0.0 and 10.0")
+    private BigDecimal cgpa;
 
     public CreateStudentRequest() {
     }
@@ -92,5 +100,13 @@ public class CreateStudentRequest {
 
     public void setAddress(String address) {
         this.address = address;
+    }
+
+    public BigDecimal getCgpa() {
+        return cgpa;
+    }
+
+    public void setCgpa(BigDecimal cgpa) {
+        this.cgpa = cgpa;
     }
 }

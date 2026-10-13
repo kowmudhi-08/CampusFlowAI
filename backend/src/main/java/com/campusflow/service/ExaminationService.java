@@ -3,6 +3,7 @@ package com.campusflow.service;
 import com.campusflow.dto.*;
 import com.campusflow.entity.*;
 import com.campusflow.exception.BadRequestException;
+import com.campusflow.exception.ConflictException;
 import com.campusflow.exception.ForbiddenException;
 import com.campusflow.exception.ResourceNotFoundException;
 import com.campusflow.repository.*;
@@ -66,6 +67,10 @@ public class ExaminationService {
         Course course = courseRepository.findById(request.getCourseId())
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.getCourseId()));
 
+        if (examinationRepository.existsByTitleIgnoreCaseAndCourseId(request.getTitle().trim(), course.getId())) {
+            throw new ConflictException("An examination with title '" + request.getTitle().trim() + "' already exists for this course");
+        }
+
         if (SecurityUtils.getCurrentUserRole() == Role.FACULTY) {
             FacultyProfile faculty = facultyProfileRepository.findByUserId(SecurityUtils.getCurrentUserId())
                     .orElseThrow(() -> new ForbiddenException("Faculty profile not found"));
@@ -82,6 +87,9 @@ public class ExaminationService {
                 request.getExamType(),
                 request.getPublished() != null ? request.getPublished() : false
         );
+        exam.setStartTime(request.getStartTime());
+        exam.setDurationMinutes(request.getDurationMinutes());
+
         Examination saved = examinationRepository.save(exam);
         return mapToDto(saved);
     }
@@ -93,6 +101,8 @@ public class ExaminationService {
 
         if (request.getTitle() != null) exam.setTitle(request.getTitle().trim());
         if (request.getExamDate() != null) exam.setExamDate(request.getExamDate());
+        if (request.getStartTime() != null) exam.setStartTime(request.getStartTime());
+        if (request.getDurationMinutes() != null) exam.setDurationMinutes(request.getDurationMinutes());
         if (request.getMaxMarks() != null) exam.setMaxMarks(request.getMaxMarks());
         if (request.getExamType() != null) exam.setExamType(request.getExamType());
         if (request.getPublished() != null) exam.setPublished(request.getPublished());
@@ -197,6 +207,8 @@ public class ExaminationService {
         dto.setCourseCode(e.getCourse().getCode());
         dto.setCourseTitle(e.getCourse().getTitle());
         dto.setExamDate(e.getExamDate());
+        dto.setStartTime(e.getStartTime());
+        dto.setDurationMinutes(e.getDurationMinutes());
         dto.setMaxMarks(e.getMaxMarks());
         dto.setExamType(e.getExamType());
         dto.setPublished(e.isPublished());

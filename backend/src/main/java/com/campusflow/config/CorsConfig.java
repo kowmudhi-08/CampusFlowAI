@@ -24,6 +24,12 @@ public class CorsConfig {
                 .map(String::trim)
                 .toList();
         configuration.setAllowedOrigins(origins);
+        configuration.setAllowedOriginPatterns(Arrays.asList(
+                "http://localhost:*",
+                "http://127.0.0.1:*",
+                "https://localhost:*",
+                "https://127.0.0.1:*"
+        ));
         
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"));

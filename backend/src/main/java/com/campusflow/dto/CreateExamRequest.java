@@ -2,6 +2,7 @@ package com.campusflow.dto;
 
 import com.campusflow.entity.ExamType;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
@@ -17,6 +18,11 @@ public class CreateExamRequest {
 
     @NotNull(message = "Exam date is required")
     private LocalDate examDate;
+
+    private String startTime;
+
+    @Min(value = 1, message = "Duration must be at least 1 minute")
+    private Integer durationMinutes;
 
     @NotNull(message = "Maximum marks is required")
     @DecimalMin(value = "1.0", message = "Maximum marks must be at least 1")
@@ -50,6 +56,22 @@ public class CreateExamRequest {
 
     public void setExamDate(LocalDate examDate) {
         this.examDate = examDate;
+    }
+
+    public String getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(String startTime) {
+        this.startTime = startTime;
+    }
+
+    public Integer getDurationMinutes() {
+        return durationMinutes;
+    }
+
+    public void setDurationMinutes(Integer durationMinutes) {
+        this.durationMinutes = durationMinutes;
     }
 
     public BigDecimal getMaxMarks() {

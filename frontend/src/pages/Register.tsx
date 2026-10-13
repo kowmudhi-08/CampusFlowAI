@@ -35,16 +35,27 @@ export const Register: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     setError(null);
     setSuccess(null);
 
-    if (!fullName.trim() || !email.trim() || !password || !confirmPassword) {
+    const trimmedName = fullName.trim();
+    const trimmedEmail = email.trim().toLowerCase();
+    const trimmedCode = code.trim();
+
+    if (!trimmedName || !trimmedEmail || !password || !confirmPassword) {
       setError('Please fill in all required fields');
       return;
     }
 
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
+    if (trimmedName.length < 2) {
+      setError('Full name must be at least 2 characters long');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      setError('Please provide a valid email address');
       return;
     }
 
@@ -53,11 +64,16 @@ export const Register: React.FC = () => {
       return;
     }
 
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
     setLoading(true);
     try {
       const payload: any = {
-        fullName: fullName.trim(),
-        email: email.trim().toLowerCase(),
+        fullName: trimmedName,
+        email: trimmedEmail,
         password,
         confirmPassword,
         role: role as Role,
@@ -68,9 +84,13 @@ export const Register: React.FC = () => {
       }
 
       if (role === 'STUDENT') {
-        payload.rollNumber = code.trim() || undefined;
+        if (trimmedCode) {
+          payload.rollNumber = trimmedCode;
+        }
       } else {
-        payload.employeeCode = code.trim() || undefined;
+        if (trimmedCode) {
+          payload.employeeCode = trimmedCode;
+        }
       }
 
       await authApi.register(payload);
@@ -80,7 +100,26 @@ export const Register: React.FC = () => {
         navigate('/login');
       }, 1500);
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Registration failed. Please check your details.';
+      let msg = '';
+      if (err.response?.data?.validationErrors && typeof err.response.data.validationErrors === 'object') {
+        const errorList = Object.values(err.response.data.validationErrors) as string[];
+        if (errorList.length > 0) {
+          msg = errorList.join('. ');
+        }
+      }
+      if (!msg) {
+        msg = err.response?.data?.message;
+      }
+      if (!msg && err.message) {
+        if (err.message === 'Network Error' || err.code === 'ERR_NETWORK') {
+          msg = 'Unable to connect to the backend server. Please verify the service is running.';
+        } else {
+          msg = err.message;
+        }
+      }
+      if (!msg) {
+        msg = 'Registration failed. Please check your details.';
+      }
       setError(msg);
     } finally {
       setLoading(false);

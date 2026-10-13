@@ -87,7 +87,7 @@ public class StudentService {
         }
 
         Department department = null;
-        if (request.getDepartmentId() != null) {
+        if (request.getDepartmentId() != null && request.getDepartmentId() > 0) {
             department = departmentRepository.findById(request.getDepartmentId())
                     .orElseThrow(() -> new ResourceNotFoundException("Department not found with id: " + request.getDepartmentId()));
         }
@@ -108,6 +108,9 @@ public class StudentService {
                 request.getPhone(),
                 request.getAddress()
         );
+        if (request.getCgpa() != null) {
+            profile.setCgpa(request.getCgpa());
+        }
         StudentProfile saved = studentProfileRepository.save(profile);
         return mapToDto(saved);
     }
@@ -130,9 +133,13 @@ public class StudentService {
         }
 
         if (request.getDepartmentId() != null) {
-            Department department = departmentRepository.findById(request.getDepartmentId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Department not found with id: " + request.getDepartmentId()));
-            profile.setDepartment(department);
+            if (request.getDepartmentId() <= 0) {
+                profile.setDepartment(null);
+            } else {
+                Department department = departmentRepository.findById(request.getDepartmentId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Department not found with id: " + request.getDepartmentId()));
+                profile.setDepartment(department);
+            }
         }
 
         if (request.getBatchYear() != null) {

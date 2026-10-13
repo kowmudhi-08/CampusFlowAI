@@ -11,9 +11,17 @@ export const apiClient = axios.create({
 
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('campusflow_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const isPublicAuthUrl =
+      config.url?.includes('/auth/login') ||
+      config.url?.includes('/auth/register') ||
+      config.url?.includes('/auth/setup-admin') ||
+      config.url?.includes('/auth/admin-setup-status');
+
+    if (!isPublicAuthUrl) {
+      const token = localStorage.getItem('campusflow_token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     return config;
   },
@@ -24,8 +32,13 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      const isAuthUrl = error.config.url?.includes('/auth/login') || error.config.url?.includes('/auth/admin-setup-status');
-      if (!isAuthUrl) {
+      const isPublicAuthUrl =
+        error.config.url?.includes('/auth/login') ||
+        error.config.url?.includes('/auth/register') ||
+        error.config.url?.includes('/auth/setup-admin') ||
+        error.config.url?.includes('/auth/admin-setup-status');
+
+      if (!isPublicAuthUrl) {
         localStorage.removeItem('campusflow_token');
         localStorage.removeItem('campusflow_user');
         window.location.href = '/login';

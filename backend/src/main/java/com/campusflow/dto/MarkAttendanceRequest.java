@@ -54,4 +54,12 @@ public class MarkAttendanceRequest {
     public void setAttendanceItems(List<StudentAttendanceItem> attendanceItems) {
         this.attendanceItems = attendanceItems;
     }
+
+    public List<StudentAttendanceItem> getRecords() {
+        return attendanceItems;
+    }
+
+    public void setRecords(List<StudentAttendanceItem> records) {
+        this.attendanceItems = records;
+    }
 }

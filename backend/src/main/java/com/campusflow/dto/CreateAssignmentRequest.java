@@ -1,5 +1,7 @@
 package com.campusflow.dto;
 
+import com.campusflow.config.FlexibleLocalDateTimeDeserializer;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -18,6 +20,7 @@ public class CreateAssignmentRequest {
     private Long courseId;
 
     @NotNull(message = "Due date is required")
+    @JsonDeserialize(using = FlexibleLocalDateTimeDeserializer.class)
     private LocalDateTime dueDate;
 
     @NotNull(message = "Max marks is required")

@@ -133,6 +133,108 @@ class AuthServiceTest {
     }
 
     @Test
+    void testRegister_Student_Success_WithProvidedRollNumber() {
+        RegisterRequest req = new RegisterRequest("Student One", "student1@test.com", "Password123!", "Password123!", Role.STUDENT);
+        req.setRollNumber("STU-2026-001");
+
+        when(userRepository.existsByEmail("student1@test.com")).thenReturn(false);
+        when(passwordEncoder.encode("Password123!")).thenReturn("hashedPassword");
+
+        User savedUser = new User("Student One", "student1@test.com", "hashedPassword", Role.STUDENT);
+        savedUser.setId(10L);
+        when(userRepository.save(any(User.class))).thenReturn(savedUser);
+
+        when(studentProfileRepository.existsByRollNumber("STU-2026-001")).thenReturn(false);
+        StudentProfile savedProfile = new StudentProfile(savedUser, "STU-2026-001", null, 2026, null, null);
+        savedProfile.setId(100L);
+        when(studentProfileRepository.save(any(StudentProfile.class))).thenReturn(savedProfile);
+        when(jwtService.generateToken(any(CustomUserDetails.class))).thenReturn("jwt-token-student");
+
+        AuthResponse resp = authService.register(req);
+
+        assertNotNull(resp);
+        assertEquals("jwt-token-student", resp.getToken());
+        assertEquals(Role.STUDENT, resp.getRole());
+        assertEquals("student1@test.com", resp.getEmail());
+        assertEquals(100L, resp.getProfileId());
+    }
+
+    @Test
+    void testRegister_Student_Success_WithGeneratedRollNumber() {
+        RegisterRequest req = new RegisterRequest("Student Two", "student2@test.com", "Password123!", "Password123!", Role.STUDENT);
+
+        when(userRepository.existsByEmail("student2@test.com")).thenReturn(false);
+        when(passwordEncoder.encode("Password123!")).thenReturn("hashedPassword");
+
+        User savedUser = new User("Student Two", "student2@test.com", "hashedPassword", Role.STUDENT);
+        savedUser.setId(11L);
+        when(userRepository.save(any(User.class))).thenReturn(savedUser);
+
+        when(studentProfileRepository.existsByRollNumber(anyString())).thenReturn(false);
+        StudentProfile savedProfile = new StudentProfile(savedUser, "STU-123456", null, 2026, null, null);
+        savedProfile.setId(101L);
+        when(studentProfileRepository.save(any(StudentProfile.class))).thenReturn(savedProfile);
+        when(jwtService.generateToken(any(CustomUserDetails.class))).thenReturn("jwt-token-student2");
+
+        AuthResponse resp = authService.register(req);
+
+        assertNotNull(resp);
+        assertEquals(Role.STUDENT, resp.getRole());
+        assertEquals(101L, resp.getProfileId());
+    }
+
+    @Test
+    void testRegister_Faculty_Success() {
+        RegisterRequest req = new RegisterRequest("Prof Faculty", "faculty1@test.com", "Password123!", "Password123!", Role.FACULTY);
+        req.setEmployeeCode("FAC-2026-001");
+
+        when(userRepository.existsByEmail("faculty1@test.com")).thenReturn(false);
+        when(passwordEncoder.encode("Password123!")).thenReturn("hashedPassword");
+
+        User savedUser = new User("Prof Faculty", "faculty1@test.com", "hashedPassword", Role.FACULTY);
+        savedUser.setId(12L);
+        when(userRepository.save(any(User.class))).thenReturn(savedUser);
+
+        when(facultyProfileRepository.existsByEmployeeCode("FAC-2026-001")).thenReturn(false);
+        FacultyProfile savedProfile = new FacultyProfile(savedUser, "FAC-2026-001", null, "Assistant Professor", null, null);
+        savedProfile.setId(200L);
+        when(facultyProfileRepository.save(any(FacultyProfile.class))).thenReturn(savedProfile);
+        when(jwtService.generateToken(any(CustomUserDetails.class))).thenReturn("jwt-token-faculty");
+
+        AuthResponse resp = authService.register(req);
+
+        assertNotNull(resp);
+        assertEquals(Role.FACULTY, resp.getRole());
+        assertEquals(200L, resp.getProfileId());
+    }
+
+    @Test
+    void testRegister_DuplicateRollNumber_ThrowsConflictException() {
+        RegisterRequest req = new RegisterRequest("Student", "student3@test.com", "Password123!", "Password123!", Role.STUDENT);
+        req.setRollNumber("STU-EXISTING");
+
+        when(userRepository.existsByEmail("student3@test.com")).thenReturn(false);
+        when(passwordEncoder.encode(anyString())).thenReturn("hashed");
+        when(userRepository.save(any(User.class))).thenReturn(new User("Student", "student3@test.com", "hashed", Role.STUDENT));
+        when(studentProfileRepository.existsByRollNumber("STU-EXISTING")).thenReturn(true);
+
+        assertThrows(ConflictException.class, () -> authService.register(req));
+    }
+
+    @Test
+    void testRegister_DuplicateEmployeeCode_ThrowsConflictException() {
+        RegisterRequest req = new RegisterRequest("Faculty", "faculty3@test.com", "Password123!", "Password123!", Role.FACULTY);
+        req.setEmployeeCode("FAC-EXISTING");
+
+        when(userRepository.existsByEmail("faculty3@test.com")).thenReturn(false);
+        when(passwordEncoder.encode(anyString())).thenReturn("hashed");
+        when(userRepository.save(any(User.class))).thenReturn(new User("Faculty", "faculty3@test.com", "hashed", Role.FACULTY));
+        when(facultyProfileRepository.existsByEmployeeCode("FAC-EXISTING")).thenReturn(true);
+
+        assertThrows(ConflictException.class, () -> authService.register(req));
+    }
+
+    @Test
     void testLogin_InvalidCredentials_ThrowsUnauthorizedException() {
         LoginRequest req = new LoginRequest("user@test.com", "WrongPassword");
 

@@ -5,7 +5,7 @@ import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { studentApi, departmentApi } from '../../api/endpoints';
 import { Student, Department } from '../../types';
 import { useAuth } from '../../context/AuthContext';
-import { Plus, Search, Edit2, Trash2, GraduationCap, X, Check, Filter } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, GraduationCap, X, Check, Filter, AlertCircle } from 'lucide-react';
 
 export const StudentsPage: React.FC = () => {
   const { role } = useAuth();
@@ -14,8 +14,11 @@ export const StudentsPage: React.FC = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [deptLoading, setDeptLoading] = useState<boolean>(false);
+  const [deptError, setDeptError] = useState<string>('');
   const [search, setSearch] = useState<string>('');
   const [selectedDept, setSelectedDept] = useState<string>('');
+  const [successBanner, setSuccessBanner] = useState<string>('');
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -23,6 +26,7 @@ export const StudentsPage: React.FC = () => {
   const [currentId, setCurrentId] = useState<number | null>(null);
   const [modalLoading, setModalLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   // Form State
   const [fullName, setFullName] = useState<string>('');
@@ -40,11 +44,16 @@ export const StudentsPage: React.FC = () => {
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
   const fetchDepartments = async () => {
+    setDeptLoading(true);
     try {
       const res = await departmentApi.getAll();
       setDepartments(res.data);
+      setDeptError('');
     } catch (err) {
       console.error('Failed to load departments', err);
+      setDeptError('Could not fetch departments.');
+    } finally {
+      setDeptLoading(false);
     }
   };
 
@@ -74,24 +83,26 @@ export const StudentsPage: React.FC = () => {
     fetchStudents();
   };
 
-  const openCreateModal = () => {
+  const openCreateModal = async () => {
     setIsEditing(false);
     setCurrentId(null);
     setFullName('');
     setEmail('');
     setPassword('');
     setRollNumber('');
-    setDepartmentId(departments.length > 0 ? departments[0].id.toString() : '');
+    setDepartmentId('');
     setBatchYear(new Date().getFullYear());
     setPhone('');
     setAddress('');
     setCgpa(0.0);
     setActive(true);
     setErrorMsg('');
+    setFieldErrors({});
     setIsModalOpen(true);
+    await fetchDepartments();
   };
 
-  const openEditModal = (s: Student) => {
+  const openEditModal = async (s: Student) => {
     setIsEditing(true);
     setCurrentId(s.id);
     setFullName(s.fullName);
@@ -102,45 +113,94 @@ export const StudentsPage: React.FC = () => {
     setBatchYear(s.batchYear || new Date().getFullYear());
     setPhone(s.phone || '');
     setAddress(s.address || '');
-    setCgpa(s.cgpa || 0.0);
+    setCgpa(s.cgpa ? Number(s.cgpa) : 0.0);
     setActive(s.active);
     setErrorMsg('');
+    setFieldErrors({});
     setIsModalOpen(true);
+    await fetchDepartments();
+  };
+
+  const validateForm = (): boolean => {
+    const errs: Record<string, string> = {};
+
+    if (!isEditing) {
+      if (!fullName.trim() || fullName.trim().length < 2) {
+        errs.fullName = 'Full name is required (minimum 2 characters).';
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!email.trim() || !emailRegex.test(email.trim())) {
+        errs.email = 'Please provide a valid email address.';
+      }
+      if (!password || password.length < 6) {
+        errs.password = 'Initial password must be at least 6 characters.';
+      }
+    } else {
+      if (!fullName.trim() || fullName.trim().length < 2) {
+        errs.fullName = 'Full name is required (minimum 2 characters).';
+      }
+    }
+
+    if (!rollNumber.trim()) {
+      errs.rollNumber = 'Roll number is required.';
+    }
+
+    const currentYear = new Date().getFullYear();
+    if (!batchYear || batchYear < 1990 || batchYear > 2050) {
+      errs.batchYear = `Batch year must be between 1990 and 2050 (e.g. ${currentYear}).`;
+    }
+
+    if (cgpa === undefined || cgpa === null || isNaN(cgpa) || cgpa < 0 || cgpa > 10.0) {
+      errs.cgpa = 'CGPA must be between 0.0 and 10.0.';
+    }
+
+    setFieldErrors(errs);
+    return Object.keys(errs).length === 0;
   };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
+
+    if (!validateForm()) {
+      return;
+    }
+
     setModalLoading(true);
 
     try {
       if (isEditing && currentId) {
         await studentApi.update(currentId, {
-          rollNumber,
+          fullName: fullName.trim(),
+          rollNumber: rollNumber.trim(),
           departmentId: departmentId ? parseInt(departmentId, 10) : null,
           batchYear: Number(batchYear),
-          phone,
-          address,
+          phone: phone.trim(),
+          address: address.trim(),
           cgpa: Number(cgpa),
           active,
         });
+        setSuccessBanner(`Profile for student "${fullName.trim()}" updated successfully.`);
       } else {
         await studentApi.create({
-          fullName,
-          email,
+          fullName: fullName.trim(),
+          email: email.trim().toLowerCase(),
           password,
-          rollNumber,
+          rollNumber: rollNumber.trim(),
           departmentId: departmentId ? parseInt(departmentId, 10) : null,
           batchYear: Number(batchYear),
-          phone,
-          address,
+          phone: phone.trim(),
+          address: address.trim(),
           cgpa: Number(cgpa),
         });
+        setSuccessBanner(`Student "${fullName.trim()}" (Roll: ${rollNumber.trim()}) registered successfully.`);
       }
       setIsModalOpen(false);
       fetchStudents();
+      setTimeout(() => setSuccessBanner(''), 6000);
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.response?.data?.errors?.[0] || 'Operation failed. Please check inputs.';
+      const resp = err.response?.data;
+      const msg = resp?.message || resp?.errors?.[0] || 'Operation failed. Please check inputs.';
       setErrorMsg(msg);
     } finally {
       setModalLoading(false);
@@ -151,7 +211,9 @@ export const StudentsPage: React.FC = () => {
     try {
       await studentApi.delete(id);
       setDeleteConfirmId(null);
+      setSuccessBanner('Student record deleted successfully.');
       fetchStudents();
+      setTimeout(() => setSuccessBanner(''), 5000);
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to delete student.');
     }
@@ -169,11 +231,26 @@ export const StudentsPage: React.FC = () => {
               className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg shadow-sm transition-colors"
             >
               <Plus className="w-4 h-4" />
-              Add Student
+              Register New Student
             </button>
           ) : undefined
         }
       />
+
+      {successBanner && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl flex items-center justify-between shadow-sm animate-in fade-in">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <Check className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+            <span>{successBanner}</span>
+          </div>
+          <button
+            onClick={() => setSuccessBanner('')}
+            className="text-emerald-600 hover:text-emerald-800 p-1"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Search and Filters Bar */}
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 justify-between items-center">
@@ -228,7 +305,7 @@ export const StudentsPage: React.FC = () => {
               ? 'No student records match the specified filters.'
               : 'There are currently no students registered in the college system.'
           }
-          actionLabel={isAdmin ? 'Add First Student' : undefined}
+          actionLabel={isAdmin ? 'Register First Student' : undefined}
           onAction={isAdmin ? openCreateModal : undefined}
         />
       ) : (
@@ -260,12 +337,12 @@ export const StudentsPage: React.FC = () => {
                     <td className="px-6 py-4 text-slate-600">{student.email}</td>
                     <td className="px-6 py-4">
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-800">
-                        {student.departmentName || 'Not Assigned'}
+                        {student.departmentName || 'None / Unassigned'}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-slate-600">{student.batchYear || '—'}</td>
                     <td className="px-6 py-4 font-semibold text-slate-900">
-                      {Number(student.cgpa).toFixed(2)}
+                      {Number(student.cgpa || 0).toFixed(2)}
                     </td>
                     <td className="px-6 py-4">
                       <span
@@ -326,39 +403,55 @@ export const StudentsPage: React.FC = () => {
             </div>
 
             {errorMsg && (
-              <div className="p-3 mb-4 text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg">
-                {errorMsg}
+              <div className="p-3 mb-4 text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{errorMsg}</span>
               </div>
             )}
 
             <form onSubmit={handleFormSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Full Name *
+                </label>
+                <input
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => {
+                    setFullName(e.target.value);
+                    if (fieldErrors.fullName) setFieldErrors(prev => ({ ...prev, fullName: '' }));
+                  }}
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-primary-500 ${
+                    fieldErrors.fullName ? 'border-rose-300' : 'border-slate-300'
+                  }`}
+                  placeholder="Jane Doe"
+                />
+                {fieldErrors.fullName && (
+                  <p className="text-xs text-rose-600 mt-1">{fieldErrors.fullName}</p>
+                )}
+              </div>
+
               {!isEditing && (
                 <>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Full Name *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                      placeholder="Jane Doe"
-                    />
-                  </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
                       Email Address *
                     </label>
                     <input
                       type="email"
-                      required
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        if (fieldErrors.email) setFieldErrors(prev => ({ ...prev, email: '' }));
+                      }}
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-primary-500 ${
+                        fieldErrors.email ? 'border-rose-300' : 'border-slate-300'
+                      }`}
                       placeholder="jane.doe@campusflow.edu"
                     />
+                    {fieldErrors.email && (
+                      <p className="text-xs text-rose-600 mt-1">{fieldErrors.email}</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -366,13 +459,19 @@ export const StudentsPage: React.FC = () => {
                     </label>
                     <input
                       type="password"
-                      required
-                      minLength={6}
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        if (fieldErrors.password) setFieldErrors(prev => ({ ...prev, password: '' }));
+                      }}
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-primary-500 ${
+                        fieldErrors.password ? 'border-rose-300' : 'border-slate-300'
+                      }`}
                       placeholder="••••••••"
                     />
+                    {fieldErrors.password && (
+                      <p className="text-xs text-rose-600 mt-1">{fieldErrors.password}</p>
+                    )}
                   </div>
                 </>
               )}
@@ -384,12 +483,19 @@ export const StudentsPage: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    required
                     value={rollNumber}
-                    onChange={(e) => setRollNumber(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                    onChange={(e) => {
+                      setRollNumber(e.target.value);
+                      if (fieldErrors.rollNumber) setFieldErrors(prev => ({ ...prev, rollNumber: '' }));
+                    }}
+                    className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-primary-500 ${
+                      fieldErrors.rollNumber ? 'border-rose-300' : 'border-slate-300'
+                    }`}
                     placeholder="CS2026-001"
                   />
+                  {fieldErrors.rollNumber && (
+                    <p className="text-xs text-rose-600 mt-1">{fieldErrors.rollNumber}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -397,45 +503,72 @@ export const StudentsPage: React.FC = () => {
                   </label>
                   <input
                     type="number"
-                    required
-                    min={2000}
-                    max={2040}
+                    min={1990}
+                    max={2050}
                     value={batchYear}
-                    onChange={(e) => setBatchYear(Number(e.target.value))}
-                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                    onChange={(e) => {
+                      setBatchYear(Number(e.target.value));
+                      if (fieldErrors.batchYear) setFieldErrors(prev => ({ ...prev, batchYear: '' }));
+                    }}
+                    className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-primary-500 ${
+                      fieldErrors.batchYear ? 'border-rose-300' : 'border-slate-300'
+                    }`}
                   />
+                  {fieldErrors.batchYear && (
+                    <p className="text-xs text-rose-600 mt-1">{fieldErrors.batchYear}</p>
+                  )}
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Department
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-semibold text-slate-700">
+                      Department
+                    </label>
+                    {deptLoading && <span className="text-[10px] text-slate-400">Loading...</span>}
+                  </div>
                   <select
                     value={departmentId}
                     onChange={(e) => setDepartmentId(e.target.value)}
                     className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 bg-white"
                   >
                     <option value="">None / Unassigned</option>
-                    {departments.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.name} ({d.code})
-                      </option>
-                    ))}
+                    {deptLoading ? (
+                      <option disabled>Loading departments...</option>
+                    ) : departments.length === 0 ? (
+                      <option disabled>No departments configured yet</option>
+                    ) : (
+                      departments.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.name} ({d.code})
+                        </option>
+                      ))
+                    )}
                   </select>
+                  {deptError && <p className="text-[10px] text-amber-600 mt-1">{deptError}</p>}
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">CGPA</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    CGPA (0.00 – 10.00)
+                  </label>
                   <input
                     type="number"
                     step="0.01"
                     min={0.0}
                     max={10.0}
                     value={cgpa}
-                    onChange={(e) => setCgpa(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                    onChange={(e) => {
+                      setCgpa(parseFloat(e.target.value) || 0);
+                      if (fieldErrors.cgpa) setFieldErrors(prev => ({ ...prev, cgpa: '' }));
+                    }}
+                    className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-primary-500 ${
+                      fieldErrors.cgpa ? 'border-rose-300' : 'border-slate-300'
+                    }`}
                   />
+                  {fieldErrors.cgpa && (
+                    <p className="text-xs text-rose-600 mt-1">{fieldErrors.cgpa}</p>
+                  )}
                 </div>
               </div>
 
@@ -490,7 +623,7 @@ export const StudentsPage: React.FC = () => {
                   disabled={modalLoading}
                   className="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg shadow-sm transition-colors disabled:opacity-50"
                 >
-                  {modalLoading ? 'Saving...' : isEditing ? 'Update Student' : 'Create Student'}
+                  {modalLoading ? 'Saving...' : isEditing ? 'Update Student' : 'Register Student'}
                 </button>
               </div>
             </form>
@@ -504,7 +637,7 @@ export const StudentsPage: React.FC = () => {
           <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-200">
             <h3 className="text-lg font-bold text-slate-900 mb-2">Delete Student?</h3>
             <p className="text-sm text-slate-600 mb-6">
-              This action will deactivate or delete this student record from the college directory.
+              This action will delete this student record from the college directory.
               This cannot be undone if enrollments or grades are linked.
             </p>
             <div className="flex justify-end gap-3">

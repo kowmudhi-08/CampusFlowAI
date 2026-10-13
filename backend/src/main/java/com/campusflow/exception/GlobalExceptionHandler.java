@@ -10,11 +10,17 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+
 import java.util.HashMap;
 import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleResourceNotFound(ResourceNotFoundException ex, HttpServletRequest request) {
@@ -96,26 +102,57 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationErrors(MethodArgumentNotValidException ex, HttpServletRequest request) {
         Map<String, String> errors = new HashMap<>();
+        String firstErrorMessage = null;
         for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
             errors.put(fieldError.getField(), fieldError.getDefaultMessage());
+            if (firstErrorMessage == null && fieldError.getDefaultMessage() != null) {
+                firstErrorMessage = fieldError.getDefaultMessage();
+            }
         }
 
         ErrorResponse error = new ErrorResponse(
                 HttpStatus.BAD_REQUEST.value(),
                 HttpStatus.BAD_REQUEST.getReasonPhrase(),
-                "Validation failed for one or more fields",
+                firstErrorMessage != null ? firstErrorMessage : "Validation failed for one or more fields",
                 request.getRequestURI(),
                 errors
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleHttpMessageNotReadable(HttpMessageNotReadableException ex, HttpServletRequest request) {
+        String msg = "Malformed request body or invalid value provided";
+        if (ex.getMessage() != null && ex.getMessage().contains("Invalid role")) {
+            msg = "Invalid role provided. Permitted roles are: STUDENT, FACULTY";
+        }
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                msg,
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex, HttpServletRequest request) {
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneralException(Exception ex, HttpServletRequest request) {
+        log.error("Unhandled exception for request {}: {}", request.getRequestURI(), ex.getMessage(), ex);
         ErrorResponse error = new ErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(),
-                "An unexpected server error occurred: " + ex.getMessage(),
+                "Registration is temporarily unavailable. Please try again.",
                 request.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);

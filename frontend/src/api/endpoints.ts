@@ -97,6 +97,8 @@ export const attendanceApi = {
   mark: (data: any) => apiClient.post<AttendanceRecord[]>('/attendance/mark', data),
   update: (id: number, data: any) => apiClient.put<AttendanceRecord>(`/attendance/${id}`, data),
   getByCourse: (courseId: number) => apiClient.get<AttendanceRecord[]>(`/attendance/course/${courseId}`),
+  getByCourseAndDate: (courseId: number, date: string) =>
+    apiClient.get<AttendanceRecord[]>(`/attendance/course/${courseId}/date`, { params: { date } }),
   getByStudent: (studentId: number) => apiClient.get<AttendanceRecord[]>(`/attendance/student/${studentId}`),
   getStudentSummary: (studentId: number) => apiClient.get<AttendanceSummary[]>(`/attendance/student/${studentId}/summary`),
 };

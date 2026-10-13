@@ -158,6 +158,8 @@ export interface Examination {
   courseCode: string;
   courseTitle: string;
   examDate: string;
+  startTime?: string;
+  durationMinutes?: number;
   maxMarks: number;
   examType: ExamType;
   published: boolean;

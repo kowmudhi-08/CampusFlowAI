@@ -10,4 +10,5 @@ import java.util.List;
 public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
     List<Assignment> findByCourseId(Long courseId);
     List<Assignment> findByFacultyId(Long facultyId);
+    boolean existsByTitleIgnoreCaseAndCourseId(String title, Long courseId);
 }

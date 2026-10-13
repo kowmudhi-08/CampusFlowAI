@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -77,10 +78,10 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
                         ).permitAll()
-
+                        .requestMatchers(HttpMethod.GET, "/api/v1/departments", "/api/v1/departments/**").permitAll()
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/faculty/**").hasAnyRole("FACULTY", "ADMIN")
-                        .requestMatchers("/api/v1/student/**").hasAnyRole("STUDENT", "ADMIN")
+                        .requestMatchers("/api/v1/students/**", "/api/v1/student/**").hasAnyRole("STUDENT", "FACULTY", "ADMIN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

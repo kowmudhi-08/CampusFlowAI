@@ -60,6 +60,10 @@ public class AssignmentService {
         Course course = courseRepository.findById(request.getCourseId())
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.getCourseId()));
 
+        if (assignmentRepository.existsByTitleIgnoreCaseAndCourseId(request.getTitle().trim(), course.getId())) {
+            throw new ConflictException("An assignment with title '" + request.getTitle().trim() + "' already exists for this course");
+        }
+
         FacultyProfile faculty = null;
         if (SecurityUtils.getCurrentUserRole() == Role.FACULTY) {
             faculty = facultyProfileRepository.findByUserId(SecurityUtils.getCurrentUserId())
